@@ -1,0 +1,18 @@
+<!-- templates/importar_csv.html -->
+{% extends "base.html" %}
+
+{% block title %} Importar CSV {% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Importar Productos desde CSV</h1>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="csv_file" class="form-label">Archivo CSV</label>
+            <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Importar</button>
+    </form>
+</div>
+{% endblock %}

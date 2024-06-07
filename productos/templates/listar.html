@@ -1,14 +1,77 @@
 {% extends "base.html" %}
 
-{% block title %} Listar Productos {% endblock %}
+{% block title %}Listar Productos{% endblock %}
 
-{% block content%}
-<h1>Listar Productos</h1>
-<ul class="list-group">
-    {% for producto in productos %}
-    <li class="list-group-item"> 
-        {{ producto.nombre }} - {{ producto.precio }} - {{ producto.cantidad }}
-    </li>
-    {% endfor %}
-</ul>
-{% endblock%}
+{% block content %}
+<div class="py-5">
+    <h1 class="mb-4">Productos Disponibles</h1>
+    <div class="row">
+        {% for producto in productos %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ producto.nombre }}</h5>
+                    <p class="card-text"><strong>Precio:</strong> {{ producto.precio}}</p>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-primary btn-sm details-btn" data-product-id="{{ producto.id }}">Detalles</button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal for product details -->
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detailsModalLabel">Detalles del Producto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Nombre:</strong> <span id="modalProductName"></span></p>
+                <p><strong>Precio:</strong> <span id="modalProductPrice"></span></p>
+                <p><strong>Cantidad:</strong> <span id="modalProductQuantity"></span></p>
+                <p><strong>Descripción:</strong> <span id="modalProductDescription"></span></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for producto in productos %}
+<div id="productDetails{{ producto.id }}" class="d-none">
+    <span class="product-name">{{ producto.nombre }}</span>
+    <span class="product-price">{{ producto.precio }}</span>
+    <span class="product-quantity">{{ producto.cantidad }}</span>
+    <span class="product-description">{{ producto.descripcion }}</span>
+</div>
+{% endfor %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
+    
+    const buttons = document.querySelectorAll('.details-btn');
+    buttons.forEach(button => {
+        button.addEventListener('click', function() {
+            const productId = this.getAttribute('data-product-id');
+            const productDetails = document.getElementById(`productDetails${productId}`);
+            
+            const productName = productDetails.querySelector('.product-name').textContent;
+            const productPrice = productDetails.querySelector('.product-price').textContent;
+            const productQuantity = productDetails.querySelector('.product-quantity').textContent;
+            const productDescription = productDetails.querySelector('.product-description').textContent;
+            
+            document.getElementById('modalProductName').textContent = productName;
+            document.getElementById('modalProductPrice').textContent = productPrice;
+            document.getElementById('modalProductQuantity').textContent = productQuantity;
+            document.getElementById('modalProductDescription').textContent = productDescription;
+            
+            modal.show();
+        });
+    });
+});
+</script>
+{% endblock %}

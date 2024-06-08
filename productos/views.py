@@ -1,94 +1,13 @@
-from django.shortcuts import render
+from .forms import ProductoForm
 from .models import Producto
-import csv
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
-from .models import Producto
 from decimal import Decimal, InvalidOperation
-from django.core.exceptions import ValidationError
+from django.contrib import messages
+import csv
 
 productos = []
 
-def listar_productos(request):
-    productos = Producto.objects.all()
-    return render(request, 'listar.html', {'productos': productos})
-
-from django.shortcuts import render
-from .models import Producto
-import csv
-from django.shortcuts import render, redirect
-from django.http import HttpResponse
-from .models import Producto
-from decimal import Decimal, InvalidOperation
-from django.core.exceptions import ValidationError
-
-productos = []
-
-def listar_productos(request):
-    productos = Producto.objects.all()
-    return render(request, 'listar.html', {'productos': productos})
-
-def exportar_csv(request):
-    # Crea la respuesta HTTP con el tipo de contenido CSV
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="productos.csv"'
-
-    writer = csv.writer(response)
-    writer.writerow(['Nombre', 'Precio', 'Cantidad'])  # Cabeceras
-
-    productos = Producto.objects.all().values_list('nombre', 'precio', 'cantidad')
-    for producto in productos:
-        writer.writerow(producto)
-
-    return response
-
-def importar_csv(request):
-    if request.method == 'POST':
-        csv_file = request.FILES.get('csv_file')
-
-        if not csv_file or not csv_file.name.endswith('.csv'):
-            return HttpResponse('<script>alert("Por favor, suba un archivo CSV."); window.location.href = "/";</script>')
-
-        file_data = csv_file.read().decode("utf-8")
-        lines = file_data.split("\n")[1:]  # Eliminamos la cabecera para no procesarla
-
-        errores = []
-        productos_importados = 0
-        for line in lines:
-            if line:  # Asegurarse de no procesar líneas vacías
-                fields = line.split(",")
-                try:
-                    nombre = fields[0].strip()
-                    precio = Decimal(fields[1].strip())
-                    cantidad = int(fields[2].strip())
-
-                    Producto.objects.create(nombre=nombre, precio=precio, cantidad=cantidad)
-                    productos_importados += 1
-                except (ValueError, InvalidOperation) as e:
-                    errores.append(f"Error en la línea '{line}': {str(e)}")
-
-        mensaje = f"Productos importados correctamente: {productos_importados}"
-        if errores:
-            mensaje += f" | Errores encontrados: <br>{'<br>'.join(errores)}"
-
-        mensaje += '<script>alert("'+ mensaje +'"); window.location.href = "/";</script>'
-        return HttpResponse(mensaje)
-
-    return render(request, 'importar_csv.html')
-from django.shortcuts import render
-from .models import Producto
-import csv
-from django.shortcuts import render, redirect
-from django.http import HttpResponse
-from .models import Producto
-from decimal import Decimal, InvalidOperation
-from django.core.exceptions import ValidationError
-
-productos = []
-
-def listar_productos(request):
-    productos = Producto.objects.all()
-    return render(request, 'listar.html', {'productos': productos})
 
 def exportar_csv(request):
     response = HttpResponse(content_type='text/csv')
@@ -108,21 +27,22 @@ def importar_csv(request):
         csv_file = request.FILES.get('csv_file')
 
         if not csv_file or not csv_file.name.endswith('.csv'):
-            return HttpResponse('<script>alert("Por favor, suba un archivo CSV."); window.location.href = "/";</script>')
+            messages.error(request, "Por favor, suba un archivo CSV válido.")
+            return redirect('/') 
 
         file_data = csv_file.read().decode("utf-8")
         lines = file_data.split("\n")[1:]  # Eliminamos la cabecera para no procesarla
 
-        errores = []
         productos_importados = 0
+        errores = []
+
         for line in lines:
-            if line:  # Asegurarse de no procesar líneas vacías
+            if line:
                 fields = line.split(",")
-                # Verificar que cada línea tiene suficientes campos
                 if len(fields) < 4:
-                    errores.append(f"Faltan datos en la línea '{line}'. Esperados 4, encontrados {len(fields)}.")
+                    errores.append(f"Faltan datos en la línea: {line[:50]}... (esperados 4, encontrados {len(fields)})")
                     continue
-                
+
                 try:
                     nombre = fields[0].strip()
                     precio = Decimal(fields[1].strip())
@@ -132,13 +52,47 @@ def importar_csv(request):
                     Producto.objects.create(nombre=nombre, precio=precio, cantidad=cantidad, descripcion=descripcion)
                     productos_importados += 1
                 except (ValueError, InvalidOperation) as e:
-                    errores.append(f"Error en la línea '{line}': {str(e)}")
+                    errores.append(f"Error en la línea: {line[:50]}... {str(e)}")
 
-        mensaje = f"Productos importados correctamente: {productos_importados}"
         if errores:
-            mensaje += f" | Errores encontrados: <br>{'<br>'.join(errores)}"
+            error_message = "Algunos productos no pudieron ser importados debido a errores.\n" + "\n".join(errores)
+            messages.error(request, error_message)
+        else:
+            success_message = f"Productos importados correctamente: {productos_importados}"
+            messages.success(request, success_message)
 
-            mensaje += '<script>alert("'+ mensaje +'"); window.location.href = "/";</script>'
-        return HttpResponse(mensaje)
+        return redirect('/') 
 
     return render(request, 'importar_csv.html')
+
+def listar_productos(request):
+    productos = Producto.objects.all()
+    return render(request, 'listar.html', {'productos': productos})
+
+def crear_producto(request):
+    if request.method == "POST":
+        form = ProductoForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('listar_productos')
+    else:
+        form = ProductoForm()
+    return render(request, 'crear_producto.html', {'form': form})
+
+def editar_producto(request, pk):
+    producto = get_object_or_404(Producto, pk=pk)
+    if request.method == "POST":
+        form = ProductoForm(request.POST, instance=producto)
+        if form.is_valid():
+            form.save()
+            return redirect('listar_productos')
+    else:
+        form = ProductoForm(instance=producto)
+    return render(request, 'editar_producto.html', {'form': form})
+
+def eliminar_producto(request, pk):
+    producto = get_object_or_404(Producto, pk=pk)
+    if request.method == "POST":
+        producto.delete()
+        return redirect('listar_productos')
+    return render(request, 'eliminar_producto.html', {'producto': producto})

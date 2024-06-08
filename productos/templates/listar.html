@@ -5,6 +5,9 @@
 {% block content %}
 <div class="py-5">
     <h1 class="mb-4">Productos Disponibles</h1>
+    <div class="mb-4">
+        <a href="{% url 'crear_producto' %}" class="btn btn-success">Crear Producto</a>
+    </div>
     <div class="row">
         {% for producto in productos %}
         <div class="col-md-4 mb-4">
@@ -15,6 +18,8 @@
                 </div>
                 <div class="card-footer">
                     <button class="btn btn-primary btn-sm details-btn" data-product-id="{{ producto.id }}">Detalles</button>
+                    <a href="{% url 'editar_producto' producto.id %}" class="btn btn-warning btn-sm">Editar</a>
+                    <a href="{% url 'eliminar_producto' producto.id %}" class="btn btn-danger btn-sm">Eliminar</a>
                 </div>
             </div>
         </div>
